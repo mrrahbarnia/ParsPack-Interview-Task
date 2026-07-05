@@ -2,6 +2,7 @@ from typing import Protocol
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..infra.db_models import User
+from ..types import UserID
 
 
 class IAuthRepo(Protocol):
@@ -11,7 +12,7 @@ class IAuthRepo(Protocol):
 
     async def add(
         self, session: AsyncSession, username: str, hashed_password: str
-    ) -> None: ...
+    ) -> UserID | None: ...
 
 
 class IPasswordEncryptor(Protocol):

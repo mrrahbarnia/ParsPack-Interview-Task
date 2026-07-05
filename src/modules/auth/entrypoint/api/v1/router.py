@@ -8,9 +8,11 @@ from fastapi import APIRouter, status, Depends
 from . import dtos, dependencies as dc
 from ....services import AuthService
 from ....services.interfaces import IPasswordEncryptor, IAuthRepo
+from ....infra import JWTService
+from ....types import TokenPayload
 
 from src.shared.entrypoint import (
-    # HTTPResponse,
+    HTTPResponse,
     handle_service_errors,
     AppBaseException,
     ServerError,
@@ -30,16 +32,22 @@ async def login(
     password_encryptor: Annotated[
         IPasswordEncryptor, Depends(dc.get_password_encryptor)
     ],
+    jwt_service: Annotated[JWTService, Depends(dc.get_jwt_service)],
     repo: Annotated[IAuthRepo, Depends(dc.get_repo)],
-) -> str:
-    #  -> HTTPResponse[dtos.LoginResponse]
+) -> HTTPResponse[dtos.LoginResponse]:
     try:
         service_result = await AuthService(
             repo, password_encryptor, session_maker
         ).login(username=payload.username, password=payload.password)
 
         result = handle_service_errors(service_result)
-        return result
+
+        access_token = jwt_service.create_access_token(TokenPayload(user_id=result))
+        return HTTPResponse[dtos.LoginResponse](
+            success=True,
+            message="Logged in successfully.",
+            data=dtos.LoginResponse(access_token=access_token, token_type="bearer"),
+        )
 
     except AppBaseException:
         raise

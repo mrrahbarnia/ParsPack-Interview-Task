@@ -3,6 +3,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .db_models import User
+from ..types import UserID
 
 
 class AuthRepo:
@@ -18,8 +19,11 @@ class AuthRepo:
 
     async def add(
         self, session: AsyncSession, username: str, hashed_password: str
-    ) -> None:
-        stmt = sa.insert(User).values(
-            {User.username: username, User.hashed_password: hashed_password}
+    ) -> UserID | None:
+        stmt = (
+            sa.insert(User)
+            .values({User.username: username, User.hashed_password: hashed_password})
+            .returning(User.id)
         )
-        await session.execute(stmt)
+        user_id = await session.scalar(stmt)
+        return user_id

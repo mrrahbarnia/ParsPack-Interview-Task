@@ -14,6 +14,7 @@ class _ENVS(BaseSettings):
     POSTGRESQL: schemas.PostgreSQL
     FASTAPI: schemas.FastAPI
     AUTH: schemas.Auth
+    JWT: schemas.JWT
 
 
 ENVS = _ENVS()  # type: ignore

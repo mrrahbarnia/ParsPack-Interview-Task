@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 from .interfaces import IAuthRepo, IPasswordEncryptor
+from ..types import UserID
 
 from src.core.config import ENVS
 from src.shared.service import Error
@@ -19,12 +20,14 @@ class AuthService:
 
     async def register(
         self, session: AsyncSession, username: str, password: str
-    ) -> None:
+    ) -> UserID | Error:
         encrypted_password = self._password_encryptor.encrypt(password)
-        print("{encrypted_password=}")
-        await self._repo.add(session, username, encrypted_password)
+        user_id = await self._repo.add(session, username, encrypted_password)
+        if user_id is None:
+            return Error.internal_error(message="Something went wrong")
+        return user_id
 
-    async def login(self, username: str, password: str) -> str | Error:
+    async def login(self, username: str, password: str) -> UserID | Error:
         if (username != ENVS.AUTH.DEFAULT_USERNAME) or (
             password != ENVS.AUTH.DEFAULT_PASSWORD
         ):
@@ -32,6 +35,7 @@ class AuthService:
         async with self._session_manager.begin() as session:
             user = await self._repo.get_by_username(session, username)
             if user is None:
-                await self.register(session, username, password)
+                return await self.register(session, username, password)
 
-        return "OK"
+            else:
+                return user.id
