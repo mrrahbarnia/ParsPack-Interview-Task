@@ -13,6 +13,7 @@ class _ENVS(BaseSettings):
     ENVIRONMENT: Environment
     POSTGRESQL: schemas.PostgreSQL
     FASTAPI: schemas.FastAPI
+    AUTH: schemas.Auth
 
 
 ENVS = _ENVS()  # type: ignore

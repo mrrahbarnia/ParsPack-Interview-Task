@@ -1,3 +1,3 @@
-from .db_metadata import BaseModel
+from .db_metadata import BaseModel, SESSION_MAKER
 
-__all__ = ["BaseModel"]
+__all__ = ["BaseModel", "SESSION_MAKER"]
