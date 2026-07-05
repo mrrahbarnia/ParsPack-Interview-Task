@@ -1,0 +1,68 @@
+services:
+
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: testing
+      network: host
+    command: uvicorn src.core.setup:application --host=0.0.0.0 --reload
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./src:/app/src/
+      - ./alembic.ini:/app/alembic.ini
+      - ./alembic:/app/alembic
+    env_file:
+      - ./.env
+    depends_on:
+      - db
+    restart: always
+  
+  # outbox_consumer:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: testing
+  #   command: python -u -m src.modules.events.entrypoint.schedular.main
+  #   volumes:
+  #     - ./src:/app/src/
+  #   env_file:
+  #     - ./.env
+  #   depends_on:
+  #     - app
+  #     - db
+  #   restart: always
+
+  db:
+    image: postgres:17.4
+    container_name: db
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRESQL__USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRESQL__PASSWORD}
+      - POSTGRES_DB=${POSTGRESQL__DATABASE}
+    ports:
+      - "${POSTGRESQL__PORT}:${POSTGRESQL__PORT}"
+    volumes:
+      - db_volume:/var/lib/postgresql/data
+  
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_container
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8888:80"
+    depends_on:
+      - db
+    volumes:
+      - pgadmin_volume:/var/lib/pgadmin
+
+
+name: parspack
+volumes:
+  db_volume:
+  pgadmin_volume:
+  kafka_volume:
