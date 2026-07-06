@@ -1,4 +1,4 @@
-import typing as T
+from typing import Any, Self
 from dataclasses import dataclass
 from enum import StrEnum, auto
 
@@ -14,7 +14,7 @@ class ErrorCode(StrEnum):
 class Error:
     code: ErrorCode
     message: str
-    details: dict[str, T.Any] | None = None
+    details: Any | None = None
 
     @classmethod
     def already_exist(
@@ -22,7 +22,7 @@ class Error:
         entity: str,
         duplicated_field: str | None = None,
         duplicated_value: str | None = None,
-    ) -> T.Self:
+    ) -> Self:
         return cls(
             code=ErrorCode.ALREADY_EXIST,
             message=f"{entity} with {duplicated_field} {duplicated_value} already exist",
@@ -30,11 +30,11 @@ class Error:
         )
 
     @classmethod
-    def validation_error(cls, message: str) -> T.Self:
+    def validation_error(cls, message: str) -> Self:
         return cls(code=ErrorCode.VALIDATION_ERROR, message=message)
 
     @classmethod
-    def not_found(cls, entity: str, field_name: str, field_value: T.Any) -> T.Self:
+    def not_found(cls, entity: str, field_name: str, field_value: Any) -> Self:
         return cls(
             code=ErrorCode.NOT_FOUND,
             message=f"{entity} with {field_name} {field_value} not found",
@@ -42,5 +42,9 @@ class Error:
         )
 
     @classmethod
-    def internal_error(cls, message: str) -> T.Self:
-        return cls(code=ErrorCode.INTERNAL_ERROR, message=message)
+    def internal_error(
+        cls,
+        details: Any,
+        message: str = "Something went wrong.",
+    ) -> Self:
+        return cls(code=ErrorCode.INTERNAL_ERROR, message=message, details=details)

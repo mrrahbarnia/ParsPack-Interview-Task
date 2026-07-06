@@ -10,6 +10,7 @@ from alembic import context
 from src.core.config import ENVS
 from src.shared.infra import BaseModel
 from src.modules.auth.infra import db_models  # noqa # type: ignore
+from src.modules.jobs.infra import db_models  # noqa # type: ignore
 
 config = context.config
 

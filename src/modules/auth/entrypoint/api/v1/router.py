@@ -6,8 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from fastapi import APIRouter, status, Depends
 
 from . import dtos, dependencies as dc
-from ....services import AuthService
-from ....services.interfaces import IPasswordEncryptor, IAuthRepo
+from ....services import AuthService, IAuthRepo, IPasswordEncryptor
 from ....infra import JWTService
 from ....types import TokenPayload
 

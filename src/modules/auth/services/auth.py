@@ -24,7 +24,7 @@ class AuthService:
         encrypted_password = self._password_encryptor.encrypt(password)
         user_id = await self._repo.add(session, username, encrypted_password)
         if user_id is None:
-            return Error.internal_error(message="Something went wrong")
+            return Error.internal_error(details="Database internal error.")
         return user_id
 
     async def login(self, username: str, password: str) -> UserID | Error:
