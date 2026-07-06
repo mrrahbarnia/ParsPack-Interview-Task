@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from fastapi import APIRouter, status, Depends
 
 from . import dtos, dependencies as dc
-from ....services import JobService, IJobRepo
+from ....infra import JobRepo
+from ....services import JobService
 
 from src.shared.entrypoint import (
     HTTPResponse,
@@ -26,7 +27,7 @@ async def create_job(
     session_maker: Annotated[
         async_sessionmaker[AsyncSession], Depends(dc.get_session_maker)
     ],
-    repo: Annotated[IJobRepo, Depends(dc.get_repo)],
+    repo: Annotated[JobRepo, Depends(dc.get_repo)],
 ) -> HTTPResponse[dtos.JobCreateResponse]:
     try:
         service_result = await JobService(repo, session_maker).create(text=payload.text)

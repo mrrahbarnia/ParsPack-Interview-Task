@@ -1,8 +1,11 @@
-from typing import Protocol
+from typing import Protocol, Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..types import JobID
+from ..types import JobID, JobResult
+from ..domain.models import Job as DomainJob
+
+from src.shared.const import DBLock
 
 
 class IJobRepo(Protocol):
@@ -10,3 +13,12 @@ class IJobRepo(Protocol):
         self, session: AsyncSession, text: str
     ) -> JobID | None: ...
     async def add(self, session: AsyncSession, text: str) -> JobID | None: ...
+    async def get_pending_jobs(
+        self, session: AsyncSession, lock: DBLock, limit: int = 1
+    ) -> Sequence[DomainJob]: ...
+    async def mark_job_as_completed(
+        self, session: AsyncSession, id: JobID, result: JobResult
+    ) -> None: ...
+    async def mark_job_as_failed(
+        self, session: AsyncSession, id: JobID, processing_error: str | None = None
+    ) -> None: ...

@@ -7,7 +7,7 @@ from src.shared.const import Environment
 
 
 app: FastAPI = FastAPI(
-    title="URL-Shortener",
+    title="ParsPack-Task",
     description="",
     version="0.0.1",
     docs_url=None
