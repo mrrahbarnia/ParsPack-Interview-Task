@@ -9,7 +9,8 @@ from aioclock import AioClock, Every, Depends
 
 from . import dependencies as dc
 from ...infra import JobRepo
-from ...services import JobService
+from ...services.schedular import JobScheduler
+from ...services.wroker_pool import JobWorkerPool
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,12 @@ async def execute_jobs(
         async_sessionmaker[AsyncSession], Depends(dc.get_session_maker)
     ],
     repo: Annotated[JobRepo, Depends(dc.get_repo)],
+    worker_pool: Annotated[JobWorkerPool, Depends(dc.get_worker_pool)],
 ) -> None:
     try:
-        await JobService(repo, session_maker).execute_pending_jobs()
+        await JobScheduler(
+            repo=repo, session_manager=session_maker, pool=worker_pool
+        ).execute_pending_jobs()
     except Exception:
         logger.critical(traceback.format_exc())
 

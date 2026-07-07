@@ -36,34 +36,3 @@ class JobService:
             return Error.not_found(entity="job", field_name="id", field_value=job_id)
 
         return job
-
-    async def execute_pending_jobs(self) -> None:
-        async with self._session_manager.begin() as session:
-            # Read lock timeout and simultaneous jobs processing from .env
-            pending_jobs = await self._repo.get_pending_job_ids(
-                session=session,
-                limit=1,
-                lock=DBLock(is_active=True, timeout_second=2, skip_locked=True),
-            )
-            processing_jobs = await self._repo.mark_jobs_as_processing(
-                session, list(pending_jobs)
-            )
-
-        for job in processing_jobs:
-            try:
-                unique_word_numbers = job.count_unique_words()
-                word_numbers = job.count_words()
-                async with self._session_manager.begin() as session:
-                    await self._repo.mark_job_as_completed(
-                        session=session,
-                        id=job.id,
-                        result={
-                            "unique_words": unique_word_numbers,
-                            "word_count": word_numbers,
-                        },
-                    )
-            except Exception as ex:
-                async with self._session_manager.begin() as session:
-                    await self._repo.mark_job_as_failed(
-                        session=session, id=job.id, processing_error=str(ex)
-                    )
