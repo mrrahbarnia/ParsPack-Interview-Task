@@ -15,6 +15,7 @@ class _ENVS(BaseSettings):
     FASTAPI: schemas.FastAPI
     AUTH: schemas.Auth
     JWT: schemas.JWT
+    WORKER_POOL: schemas.WorkerPool
 
 
 ENVS = _ENVS()  # type: ignore

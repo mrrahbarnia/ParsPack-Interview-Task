@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from .wroker_pool import JobWorkerPool
 from .interfaces import IJobRepo
 
+from src.core.config import ENVS
 from src.shared.const import DBLock
 
 
@@ -22,7 +23,7 @@ class JobScheduler:
         async with self._session_manager.begin() as session:
             ids = await self._repo.get_pending_job_ids(
                 session=session,
-                limit=10,
+                limit=ENVS.WORKER_POOL.JOBS_EXECUT_SIMULTANEOSLY,
                 lock=DBLock(
                     is_active=True,
                     timeout_second=2,
