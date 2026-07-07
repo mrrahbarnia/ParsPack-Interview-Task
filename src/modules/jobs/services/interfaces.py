@@ -12,6 +12,9 @@ class IJobRepo(Protocol):
     async def get_id_by_text(
         self, session: AsyncSession, text: str
     ) -> JobID | None: ...
+    async def get_by_id(
+        self, session: AsyncSession, id: JobID, lock: DBLock
+    ) -> DomainJob | None: ...
     async def add(self, session: AsyncSession, text: str) -> JobID | None: ...
     async def get_pending_jobs(
         self, session: AsyncSession, lock: DBLock, limit: int = 1

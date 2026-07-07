@@ -19,6 +19,33 @@ class JobRepo:
         job_id = await session.scalar(stmt)
         return job_id
 
+    async def get_by_id(
+        self, session: AsyncSession, id: JobID, lock: DBLock
+    ) -> DomainJob | None:
+        stmt = sa.select(DBJob).where(DBJob.id == id).limit(1)
+
+        if lock.is_active:
+            await session.execute(
+                sa.text(f"SET LOCAL lock_timeout = '{lock.timeout_second}s'")
+            )
+            stmt = stmt.with_for_update(skip_locked=lock.skip_locked)
+
+        try:
+            db_job = await session.scalar(stmt)
+            if not db_job:
+                return None
+
+            domain_job = DomainJob(
+                id=db_job.id,
+                text=db_job.text,
+                status=db_job.status,
+                result=db_job.result,
+            )
+            return domain_job
+
+        except Exception:
+            return None
+
     async def add(self, session: AsyncSession, text: str) -> JobID | None:
         stmt = sa.insert(DBJob).values({DBJob.text: text}).returning(DBJob.id)
         job_id = await session.scalar(stmt)
@@ -35,13 +62,18 @@ class JobRepo:
             )
             stmt = stmt.with_for_update(skip_locked=lock.skip_locked)
 
-        jobs = (await session.scalars(stmt)).all()
+        try:
+            jobs = (await session.scalars(stmt)).all()
 
-        domain_jobs: list[DomainJob] = []
-        for job in jobs:
-            domain_jobs.append(DomainJob(id=job.id, text=job.text))
+            domain_jobs: list[DomainJob] = []
+            for job in jobs:
+                domain_jobs.append(
+                    DomainJob(id=job.id, text=job.text, status=job.status)
+                )
 
-        return domain_jobs
+            return domain_jobs
+        except Exception:
+            return []
 
     async def mark_job_as_completed(
         self, session: AsyncSession, id: JobID, result: JobResult
