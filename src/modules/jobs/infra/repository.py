@@ -1,4 +1,5 @@
 from typing import Sequence
+from datetime import datetime, UTC
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,6 +51,54 @@ class JobRepo:
         stmt = sa.insert(DBJob).values({DBJob.text: text}).returning(DBJob.id)
         job_id = await session.scalar(stmt)
         return job_id
+
+    async def get_pending_job_ids(
+        self, session: AsyncSession, lock: DBLock, limit: int = 1
+    ) -> Sequence[JobID]:
+        stmt = (
+            sa.select(DBJob.id)
+            .where(DBJob.status == JobStatus.PENDING)
+            .order_by(DBJob.created_at.desc())
+            .limit(limit)
+        )
+        if lock.is_active:
+            await session.execute(
+                sa.text(f"SET LOCAL lock_timeout = '{lock.timeout_second}s'")
+            )
+            stmt = stmt.with_for_update(skip_locked=lock.skip_locked)
+
+        try:
+            job_ids = (await session.scalars(stmt)).all()
+
+            return job_ids
+
+        except Exception:
+            return []
+
+    async def mark_jobs_as_processing(
+        self, session: AsyncSession, job_ids: list[JobID]
+    ) -> Sequence[DomainJob]:
+        stmt = (
+            sa.update(DBJob)
+            .values(
+                {
+                    DBJob.status: JobStatus.PROCESSING,
+                    DBJob.start_processing_at: datetime.now(UTC),
+                }
+            )
+            .where(DBJob.id.in_(job_ids))
+            .returning(DBJob)
+        )
+
+        updated_db_jobs = (await session.scalars(stmt)).all()
+        updated_domain_jobs: list[DomainJob] = []
+
+        for job in updated_db_jobs:
+            updated_domain_jobs.append(
+                DomainJob(id=job.id, text=job.text, status=job.status)
+            )
+
+        return updated_domain_jobs
 
     async def get_pending_jobs(
         self, session: AsyncSession, lock: DBLock, limit: int = 1

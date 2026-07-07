@@ -13,6 +13,7 @@ from src.shared.infra import BaseModel
 class Job(BaseModel):
     __tablename__ = "jobs"
     processing_error: so.Mapped[str | None] = so.mapped_column(sa.Text)
+    start_processing_at: so.Mapped[datetime | None]
     result: so.Mapped[JobResult | None] = so.mapped_column(JSONB)
     text: so.Mapped[str] = so.mapped_column(sa.Text, unique=True)
     status: so.Mapped[JobStatus] = so.mapped_column(default=JobStatus.PENDING)

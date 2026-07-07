@@ -39,13 +39,17 @@ class JobService:
 
     async def execute_pending_jobs(self) -> None:
         async with self._session_manager.begin() as session:
-            # Read lock timeout from .env
-            pending_jobs = await self._repo.get_pending_jobs(
+            # Read lock timeout and simultaneous jobs processing from .env
+            pending_jobs = await self._repo.get_pending_job_ids(
                 session=session,
-                lock=DBLock(is_active=True, timeout_second=1, skip_locked=True),
+                limit=1,
+                lock=DBLock(is_active=True, timeout_second=2, skip_locked=True),
+            )
+            processing_jobs = await self._repo.mark_jobs_as_processing(
+                session, list(pending_jobs)
             )
 
-        for job in pending_jobs:
+        for job in processing_jobs:
             try:
                 unique_word_numbers = job.count_unique_words()
                 word_numbers = job.count_words()

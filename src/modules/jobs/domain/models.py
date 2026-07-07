@@ -22,6 +22,12 @@ class Job:
             raise InvalidJobStatus(
                 message=f"Cannot countig words from job in state {self.status}"
             )
+
+        # Simulating a CPU intensive task
+        count = 0
+        for _ in range(1_000_000):
+            count += 1
+
         return len(self.text.split())
 
     def count_unique_words(self) -> int:
@@ -29,4 +35,10 @@ class Job:
             raise InvalidJobStatus(
                 message=f"Cannot countig unique words from job in state {self.status}"
             )
+
+        # Simulating a CPU intensive task
+        count = 0
+        for _ in range(1_000_000):
+            count += 1
+
         return len(set(self.text.lower().split()))
