@@ -8,7 +8,7 @@ services:
       network: host
     command: uvicorn src.core.setup:application --host=0.0.0.0 --reload
     ports:
-      - '8000:8000'
+      - "${FASTAPI__PORT}:${FASTAPI__PORT}"
     volumes:
       - ./src:/app/src/
       - ./alembic.ini:/app/alembic.ini
