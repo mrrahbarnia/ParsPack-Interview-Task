@@ -11,6 +11,7 @@ from ....infra import JWTService
 from ....types import TokenPayload
 
 from src.core.config import ENVS
+from src.shared.entrypoint.dependencies import get_session_maker
 from src.shared.entrypoint import (
     HTTPResponse,
     handle_service_errors,
@@ -27,7 +28,7 @@ router = APIRouter(prefix="/auth")
 async def login(
     payload: dtos.LoginRequest,
     session_maker: Annotated[
-        async_sessionmaker[AsyncSession], Depends(dc.get_session_maker)
+        async_sessionmaker[AsyncSession], Depends(get_session_maker)
     ],
     password_encryptor: Annotated[
         IPasswordEncryptor, Depends(dc.get_password_encryptor)

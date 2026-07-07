@@ -1,7 +1,10 @@
 from typing import Annotated
 
 from fastapi import Security
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from ..infra import SESSION_MAKER
 
 from src.modules.auth.types import UserID
 from src.modules.auth.infra import JWT_INSTANCE
@@ -23,3 +26,7 @@ def get_authenticated_user_id(
         raise InvalidToken
 
     return payload.get("user_id")
+
+
+def get_session_maker() -> async_sessionmaker[AsyncSession]:
+    return SESSION_MAKER

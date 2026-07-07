@@ -15,11 +15,15 @@ dependencies = [
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.2",
     "pyjwt>=2.13.0",
+    "pytest-asyncio>=1.4.0",
+    "pytest>=9.1.1",
     "python-json-logger>=4.1.0",
     "sqlalchemy[asyncio]>=2.0.51",
     "types-passlib>=1.7.7.20260211",
     "uuid6>=2025.0.1",
     "uvicorn>=0.50.0",
+    "testcontainers[keycloak,postgresql]>=4.14.2",
+    "httpx>=0.28.1",
 ]
 
 

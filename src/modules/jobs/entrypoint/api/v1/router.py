@@ -12,7 +12,10 @@ from ....types import JobID
 
 from src.shared.const import DomainError
 from src.modules.auth.types import UserID
-from src.shared.entrypoint.dependencies import get_authenticated_user_id
+from src.shared.entrypoint.dependencies import (
+    get_authenticated_user_id,
+    get_session_maker,
+)
 from src.shared.entrypoint import (
     HTTPResponse,
     handle_service_errors,
@@ -30,7 +33,7 @@ router = APIRouter(prefix="/jobs")
 async def create_job(
     payload: dtos.JobCreateRequest,
     session_maker: Annotated[
-        async_sessionmaker[AsyncSession], Depends(dc.get_session_maker)
+        async_sessionmaker[AsyncSession], Depends(get_session_maker)
     ],
     repo: Annotated[JobRepo, Depends(dc.get_repo)],
     _: Annotated[UserID, Depends(get_authenticated_user_id)],
@@ -58,7 +61,7 @@ async def create_job(
 async def get_job(
     job_id: JobID,
     session_maker: Annotated[
-        async_sessionmaker[AsyncSession], Depends(dc.get_session_maker)
+        async_sessionmaker[AsyncSession], Depends(get_session_maker)
     ],
     repo: Annotated[JobRepo, Depends(dc.get_repo)],
     _: Annotated[UserID, Depends(get_authenticated_user_id)],
