@@ -11,6 +11,8 @@ from ....services import JobService
 from ....types import JobID
 
 from src.shared.const import DomainError
+from src.modules.auth.types import UserID
+from src.shared.entrypoint.dependencies import get_authenticated_user_id
 from src.shared.entrypoint import (
     HTTPResponse,
     handle_service_errors,
@@ -31,6 +33,7 @@ async def create_job(
         async_sessionmaker[AsyncSession], Depends(dc.get_session_maker)
     ],
     repo: Annotated[JobRepo, Depends(dc.get_repo)],
+    _: Annotated[UserID, Depends(get_authenticated_user_id)],
 ) -> HTTPResponse[dtos.JobCreateResponse]:
     try:
         service_result = await JobService(repo, session_maker).create(text=payload.text)
@@ -58,6 +61,7 @@ async def get_job(
         async_sessionmaker[AsyncSession], Depends(dc.get_session_maker)
     ],
     repo: Annotated[JobRepo, Depends(dc.get_repo)],
+    _: Annotated[UserID, Depends(get_authenticated_user_id)],
 ) -> HTTPResponse[dtos.JobDetailResponse]:
     try:
         service_result = await JobService(repo, session_maker).get_job_by_id(job_id)

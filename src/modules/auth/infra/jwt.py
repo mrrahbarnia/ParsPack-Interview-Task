@@ -1,3 +1,5 @@
+import traceback
+import logging
 from typing import Any
 from datetime import datetime, timedelta, UTC
 
@@ -7,20 +9,18 @@ from .. import types
 
 from src.core.config import ENVS
 
+logger = logging.getLogger(__name__)
+
 
 class JWTService:
-    def __init__(
-        self, secret_key: str, algorithm: str, access_token_expires_minute: int
-    ) -> None:
+    def __init__(self, secret_key: str, algorithm: str) -> None:
         self._secret_key = secret_key
         self._algorithm = algorithm
-        self._access_token_expires_minute = access_token_expires_minute
 
     def create_access_token(
-        self,
-        token_payload: types.TokenPayload,
+        self, token_payload: types.TokenPayload, access_token_expires_minute: int
     ) -> str:
-        expires_delta = timedelta(minutes=self._access_token_expires_minute)
+        expires_delta = timedelta(minutes=access_token_expires_minute)
 
         now = datetime.now(UTC)
 
@@ -58,15 +58,15 @@ class JWTService:
             return payload
 
         except jwt.ExpiredSignatureError:
-            print("Token has expired")
             return None
-        except jwt.InvalidTokenError as e:
-            print(f"Invalid token: {e}")
+        except jwt.InvalidTokenError:
+            return None
+        except Exception:
+            logger.error(traceback.format_exc())
             return None
 
 
 JWT_INSTANCE = JWTService(
     secret_key=ENVS.JWT.SECRET_KEY,
     algorithm=ENVS.JWT.ALGORITHM,
-    access_token_expires_minute=ENVS.JWT.ACCESS_TOKEN_EXPIRES_MINUTE,
 )

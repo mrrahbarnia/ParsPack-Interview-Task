@@ -10,6 +10,7 @@ from ....services import AuthService, IAuthRepo, IPasswordEncryptor
 from ....infra import JWTService
 from ....types import TokenPayload
 
+from src.core.config import ENVS
 from src.shared.entrypoint import (
     HTTPResponse,
     handle_service_errors,
@@ -41,7 +42,10 @@ async def login(
 
         result = handle_service_errors(service_result)
 
-        access_token = jwt_service.create_access_token(TokenPayload(user_id=result))
+        access_token = jwt_service.create_access_token(
+            token_payload=TokenPayload(user_id=result),
+            access_token_expires_minute=ENVS.JWT.ACCESS_TOKEN_EXPIRES_MINUTE,
+        )
         return HTTPResponse[dtos.LoginResponse](
             success=True,
             message="Logged in successfully.",
