@@ -8,8 +8,8 @@ from aioclock import AioClock, Every, Depends
 
 from . import dependencies as dc
 from ...infra import JobRepo
-from ...services.schedular import JobScheduler
-from ...services.wroker_pool import JobWorkerPool
+from ...services.scheduler import JobScheduler
+from ...services.worker_pool import JobWorkerPool
 
 from src.shared.entrypoint.dependencies import get_session_maker
 

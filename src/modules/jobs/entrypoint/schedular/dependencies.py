@@ -1,5 +1,5 @@
 from ...infra import JobRepo
-from ...services.wroker_pool import JobWorkerPool
+from ...services.worker_pool import JobWorkerPool
 
 from src.core.config import ENVS
 

@@ -45,7 +45,7 @@ async def create_job(
 
         return HTTPResponse[dtos.JobCreateResponse](
             success=True,
-            message="Logged in successfully.",
+            message="Job created successfully.",
             data=dtos.JobCreateResponse(job_id=job_id),
         )
 
@@ -73,7 +73,7 @@ async def get_job(
 
         return HTTPResponse[dtos.JobDetailResponse](
             success=True,
-            message="Logged in successfully.",
+            message="Job result fetched successfully.",
             data=dtos.JobDetailResponse(status=job.status, result=job.result),
         )
 

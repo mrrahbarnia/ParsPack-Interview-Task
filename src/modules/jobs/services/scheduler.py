@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .wroker_pool import JobWorkerPool
+from .worker_pool import JobWorkerPool
 from .interfaces import IJobRepo
 
 from src.core.config import ENVS
