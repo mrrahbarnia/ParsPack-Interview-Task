@@ -33,6 +33,20 @@ class JobWorkerPool:
             task = asyncio.create_task(self._worker())
             self._workers.append(task)
 
+    async def stop(self, *, drain: bool = True) -> None:
+        if not self._started:
+            return
+
+        if drain:
+            await self._queue.join()
+
+        for task in self._workers:
+            task.cancel()
+
+        await asyncio.gather(*self._workers, return_exceptions=True)
+        self._workers.clear()
+        self._started = False
+
     async def submit(self, job: DomainJob) -> None:
         await self._queue.put(job)
 
