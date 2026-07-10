@@ -22,6 +22,9 @@ class IJobRepo(Protocol):
     async def mark_jobs_as_processing(
         self, session: AsyncSession, job_ids: list[JobID]
     ) -> Sequence[DomainJob]: ...
+    async def reset_stale_processing_jobs(
+        self, session: AsyncSession, timeout_minutes: int
+    ) -> None: ...
     async def mark_job_as_completed(
         self, session: AsyncSession, id: JobID, result: JobResult
     ) -> None: ...

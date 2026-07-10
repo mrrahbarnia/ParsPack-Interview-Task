@@ -19,7 +19,7 @@ services:
       - db
     restart: always
   
-  worker:
+  schedular:
     build:
       context: .
       dockerfile: Dockerfile

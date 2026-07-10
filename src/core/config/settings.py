@@ -16,6 +16,7 @@ class _ENVS(BaseSettings):
     AUTH: schemas.Auth
     JWT: schemas.JWT
     WORKER_POOL: schemas.WorkerPool
+    SCHEDULAR: schemas.Schedular
 
 
 ENVS = _ENVS()  # type: ignore

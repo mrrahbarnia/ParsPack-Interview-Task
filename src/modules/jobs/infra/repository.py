@@ -1,5 +1,5 @@
 from typing import Sequence
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -99,6 +99,29 @@ class JobRepo:
             )
 
         return updated_domain_jobs
+
+    async def reset_stale_processing_jobs(
+        self, session: AsyncSession, timeout_minutes: int
+    ) -> None:
+        stale_before = datetime.now(UTC) - timedelta(minutes=timeout_minutes)
+        stmt = (
+            sa.update(DBJob)
+            .values(
+                {
+                    DBJob.status: JobStatus.PENDING,
+                    DBJob.start_processing_at: None,
+                    DBJob.processing_error: None,
+                }
+            )
+            .where(
+                sa.and_(
+                    DBJob.status == JobStatus.PROCESSING,
+                    DBJob.start_processing_at < stale_before,
+                )
+            )
+        )
+
+        await session.execute(stmt)
 
     async def get_pending_jobs(
         self, session: AsyncSession, lock: DBLock, limit: int = 1

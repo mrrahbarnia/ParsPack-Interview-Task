@@ -38,3 +38,10 @@ class JobScheduler:
 
         for job in jobs:
             await self._pool.submit(job)
+
+    async def reset_stale_processing_jobs(self) -> None:
+        async with self._session_manager.begin() as session:
+            await self._repo.reset_stale_processing_jobs(
+                session=session,
+                timeout_minutes=ENVS.SCHEDULAR.PROCESSING_JOB_TIMEOUT_MINUTES,
+            )
