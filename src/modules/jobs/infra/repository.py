@@ -2,6 +2,7 @@ from typing import Sequence
 from datetime import datetime, timedelta, UTC
 
 import sqlalchemy as sa
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .db_models import Job as DBJob
@@ -9,6 +10,18 @@ from ..types import JobID, JobStatus, JobResult
 from ..domain.models import Job as DomainJob
 
 from src.shared.const import DBLock
+
+
+POSTGRES_LOCK_TIMEOUT_SQLSTATE = "55P03"
+
+
+def _is_lock_timeout_error(error: DBAPIError) -> bool:
+    original_error = error.orig
+    sqlstate = getattr(original_error, "sqlstate", None)
+    pgcode = getattr(original_error, "pgcode", None)
+    return sqlstate == POSTGRES_LOCK_TIMEOUT_SQLSTATE or (
+        pgcode == POSTGRES_LOCK_TIMEOUT_SQLSTATE
+    )
 
 
 class JobRepo:
@@ -44,8 +57,10 @@ class JobRepo:
             )
             return domain_job
 
-        except Exception:
-            return None
+        except DBAPIError as ex:
+            if _is_lock_timeout_error(ex):
+                return None
+            raise
 
     async def add(self, session: AsyncSession, text: str) -> JobID | None:
         stmt = sa.insert(DBJob).values({DBJob.text: text}).returning(DBJob.id)
@@ -72,8 +87,10 @@ class JobRepo:
 
             return job_ids
 
-        except Exception:
-            return []
+        except DBAPIError as ex:
+            if _is_lock_timeout_error(ex):
+                return []
+            raise
 
     async def mark_jobs_as_processing(
         self, session: AsyncSession, job_ids: list[JobID]
@@ -144,8 +161,10 @@ class JobRepo:
                 )
 
             return domain_jobs
-        except Exception:
-            return []
+        except DBAPIError as ex:
+            if _is_lock_timeout_error(ex):
+                return []
+            raise
 
     async def mark_job_as_completed(
         self, session: AsyncSession, id: JobID, result: JobResult
