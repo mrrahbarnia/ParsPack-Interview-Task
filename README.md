@@ -23,3 +23,12 @@ After the application is running, Swagger is available at:
 ```
 http://localhost:8000/docs
 ```
+
+## Authentication
+
+Login with the credentials from environment variables
+
+```
+AUTH__DEFAULT_USERNAME="test"
+AUTH__DEFAULT_PASSWORD="test"
+```
