@@ -12,15 +12,13 @@ class JobWorkerPool:
         *,
         worker_count: int,
         queue_size: int,
-        repo: IJobRepo | None,
-        session_manager: async_sessionmaker[AsyncSession] | None,
     ) -> None:
         self._started = False
         self._queue: asyncio.Queue[DomainJob] = asyncio.Queue(maxsize=queue_size)
         self._workers: list[asyncio.Task[None]] = []
 
-        self.repo = repo
-        self.session_manager = session_manager
+        self._repo: IJobRepo | None = None
+        self._session_manager: async_sessionmaker[AsyncSession] | None = None
         self._worker_count = worker_count
 
     def start(self) -> None:
@@ -47,7 +45,14 @@ class JobWorkerPool:
         self._workers.clear()
         self._started = False
 
-    async def submit(self, job: DomainJob) -> None:
+    async def submit(
+        self,
+        job: DomainJob,
+        session_manager: async_sessionmaker[AsyncSession],
+        repo: IJobRepo,
+    ) -> None:
+        self._session_manager = session_manager
+        self._repo = repo
         await self._queue.put(job)
 
     async def _worker(self) -> None:
@@ -61,7 +66,7 @@ class JobWorkerPool:
                 self._queue.task_done()
 
     async def _execute(self, job: DomainJob) -> None:
-        if (self.repo is None) or (self.session_manager is None):
+        if (self._repo is None) or (self._session_manager is None):
             raise RuntimeError(
                 "Repo instance or session_manager instance didnt pass to JobWorkerPool."
             )
@@ -70,8 +75,8 @@ class JobWorkerPool:
 
             word_count = await asyncio.to_thread(job.count_words)
 
-            async with self.session_manager.begin() as session:
-                await self.repo.mark_job_as_completed(
+            async with self._session_manager.begin() as session:
+                await self._repo.mark_job_as_completed(
                     session=session,
                     id=job.id,
                     result={
@@ -81,8 +86,8 @@ class JobWorkerPool:
                 )
 
         except Exception as ex:
-            async with self.session_manager.begin() as session:
-                await self.repo.mark_job_as_failed(
+            async with self._session_manager.begin() as session:
+                await self._repo.mark_job_as_failed(
                     session=session,
                     id=job.id,
                     processing_error=str(ex),

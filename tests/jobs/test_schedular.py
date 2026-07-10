@@ -18,8 +18,6 @@ async def test_execute_pending_jobs_on_pool_to_complete_jobs(
     pool = JobWorkerPool(
         worker_count=1,
         queue_size=1,
-        repo=repo,
-        session_manager=test_session_maker,
     )
     scheduler = JobScheduler(
         repo=repo,
@@ -54,8 +52,6 @@ async def test_reset_stale_processing_jobs_only_resets_stale_processing_jobs(
     pool = JobWorkerPool(
         worker_count=1,
         queue_size=1,
-        repo=repo,
-        session_manager=test_session_maker,
     )
     scheduler = JobScheduler(
         repo=repo,
