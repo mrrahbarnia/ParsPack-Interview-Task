@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_application: FastAPI) -> T.AsyncGenerator[None, None]:
     # ============================== On startup
-    logger.info("Logger is running...")
     dictConfig(LogConfig().model_dump())
+    logger.info("Logger is running...")
 
     logger.info("Application is running...")
 

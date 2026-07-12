@@ -13,7 +13,7 @@ class JobScheduler:
         repo: IJobRepo,
         session_manager: async_sessionmaker[AsyncSession],
         pool: JobWorkerPool,
-    ):
+    ) -> None:
         self._repo = repo
         self._session_manager = session_manager
         self._pool = pool

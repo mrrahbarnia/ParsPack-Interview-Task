@@ -25,7 +25,7 @@ class Job:
 
         # Simulating a CPU intensive task
         count = 0
-        for _ in range(1_000_000):
+        for _ in range(1_000_000_000):
             count += 1
 
         return len(self.text.split())
@@ -38,7 +38,7 @@ class Job:
 
         # Simulating a CPU intensive task
         count = 0
-        for _ in range(1_000_000):
+        for _ in range(1_000_000_000):
             count += 1
 
         return len(set(self.text.lower().split()))
