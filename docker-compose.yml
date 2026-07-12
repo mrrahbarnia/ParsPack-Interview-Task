@@ -33,6 +33,63 @@ services:
       - app
       - db
     restart: always
+  
+  worker1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: testing
+    command: python -u -m src.modules.jobs.entrypoint.worker.main
+    volumes:
+      - ./src:/app/src/
+    env_file:
+      - ./.env
+    depends_on:
+      - app
+      - db
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+  
+  worker2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: testing
+    command: python -u -m src.modules.jobs.entrypoint.worker.main
+    volumes:
+      - ./src:/app/src/
+    env_file:
+      - ./.env
+    depends_on:
+      - app
+      - db
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+    
+  worker3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: testing
+    command: python -u -m src.modules.jobs.entrypoint.worker.main
+    volumes:
+      - ./src:/app/src/
+    env_file:
+      - ./.env
+    depends_on:
+      - app
+      - db
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
 
   db:
     image: postgres:17.4

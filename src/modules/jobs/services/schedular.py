@@ -1,6 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .worker_pool import JobWorkerPool
 from .interfaces import IJobRepo
 
 from src.core.config import ENVS
@@ -12,13 +11,11 @@ class JobScheduler:
         self,
         repo: IJobRepo,
         session_manager: async_sessionmaker[AsyncSession],
-        pool: JobWorkerPool,
     ) -> None:
         self._repo = repo
         self._session_manager = session_manager
-        self._pool = pool
 
-    async def execute_pending_jobs(self) -> None:
+    async def queue_pending_jobs(self) -> None:
 
         async with self._session_manager.begin() as session:
             ids = await self._repo.get_pending_job_ids(
@@ -31,19 +28,21 @@ class JobScheduler:
                 ),
             )
 
-            jobs = await self._repo.mark_jobs_as_processing(
+            await self._repo.mark_jobs_as_queued(
                 session=session,
                 job_ids=list(ids),
-            )
-
-        for job in jobs:
-            await self._pool.submit(
-                job=job, session_manager=self._session_manager, repo=self._repo
             )
 
     async def reset_stale_processing_jobs(self) -> None:
         async with self._session_manager.begin() as session:
             await self._repo.reset_stale_processing_jobs(
+                session=session,
+                timeout_minutes=ENVS.SCHEDULAR.PROCESSING_JOB_TIMEOUT_MINUTES,
+            )
+
+    async def reset_stale_queued_jobs(self) -> None:
+        async with self._session_manager.begin() as session:
+            await self._repo.reset_stale_queued_jobs(
                 session=session,
                 timeout_minutes=ENVS.SCHEDULAR.PROCESSING_JOB_TIMEOUT_MINUTES,
             )

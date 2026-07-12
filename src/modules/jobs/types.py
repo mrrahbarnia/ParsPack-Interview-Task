@@ -7,6 +7,7 @@ JobID = NewType("JobID", UUID)
 
 class JobStatus(StrEnum):
     PENDING = auto()
+    QUEUED = auto()
     PROCESSING = auto()
     COMPLETED = auto()
     FAILED = auto()

@@ -19,10 +19,19 @@ class IJobRepo(Protocol):
     async def get_pending_job_ids(
         self, session: AsyncSession, lock: DBLock, limit: int = 1
     ) -> Sequence[JobID]: ...
+    async def get_queued_job_ids(
+        self, session: AsyncSession, lock: DBLock, limit: int = 1
+    ) -> Sequence[JobID]: ...
+    async def mark_jobs_as_queued(
+        self, session: AsyncSession, job_ids: list[JobID]
+    ) -> Sequence[DomainJob]: ...
     async def mark_jobs_as_processing(
         self, session: AsyncSession, job_ids: list[JobID]
     ) -> Sequence[DomainJob]: ...
     async def reset_stale_processing_jobs(
+        self, session: AsyncSession, timeout_minutes: int
+    ) -> None: ...
+    async def reset_stale_queued_jobs(
         self, session: AsyncSession, timeout_minutes: int
     ) -> None: ...
     async def mark_job_as_completed(

@@ -117,6 +117,51 @@ class JobRepo:
 
         return updated_domain_jobs
 
+    async def mark_jobs_as_queued(
+        self, session: AsyncSession, job_ids: list[JobID]
+    ) -> Sequence[DomainJob]:
+        stmt = (
+            sa.update(DBJob)
+            .values(
+                {
+                    DBJob.status: JobStatus.QUEUED,
+                }
+            )
+            .where(DBJob.id.in_(job_ids))
+            .returning(DBJob)
+        )
+
+        updated_db_jobs = (await session.scalars(stmt)).all()
+        updated_domain_jobs: list[DomainJob] = []
+
+        for job in updated_db_jobs:
+            updated_domain_jobs.append(
+                DomainJob(id=job.id, text=job.text, status=job.status)
+            )
+
+        return updated_domain_jobs
+
+    async def reset_stale_queued_jobs(
+        self, session: AsyncSession, timeout_minutes: int
+    ) -> None:
+        stale_before = datetime.now(UTC) - timedelta(minutes=timeout_minutes)
+        stmt = (
+            sa.update(DBJob)
+            .values(
+                {
+                    DBJob.status: JobStatus.PENDING,
+                }
+            )
+            .where(
+                sa.and_(
+                    DBJob.status == JobStatus.QUEUED,
+                    DBJob.start_processing_at < stale_before,
+                )
+            )
+        )
+
+        await session.execute(stmt)
+
     async def reset_stale_processing_jobs(
         self, session: AsyncSession, timeout_minutes: int
     ) -> None:
@@ -161,6 +206,26 @@ class JobRepo:
                 )
 
             return domain_jobs
+        except DBAPIError as ex:
+            if _is_lock_timeout_error(ex):
+                return []
+            raise
+
+    async def get_queued_job_ids(
+        self, session: AsyncSession, lock: DBLock, limit: int = 1
+    ) -> Sequence[JobID]:
+        stmt = sa.select(DBJob.id).where(DBJob.status == JobStatus.QUEUED).limit(limit)
+
+        if lock.is_active:
+            await session.execute(
+                sa.text(f"SET LOCAL lock_timeout = '{lock.timeout_second}s'")
+            )
+            stmt = stmt.with_for_update(skip_locked=lock.skip_locked)
+
+        try:
+            job_ids = (await session.scalars(stmt)).all()
+
+            return job_ids
         except DBAPIError as ex:
             if _is_lock_timeout_error(ex):
                 return []
