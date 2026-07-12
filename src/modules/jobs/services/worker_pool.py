@@ -1,82 +1,111 @@
 import asyncio
+import logging
+import multiprocessing
+from enum import StrEnum, auto
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .interfaces import IJobRepo
-from ..domain.models import Job as DomainJob
+from ..infra.repository import JobRepo
+from ..types import JobID
+
+from src.shared.const import DBLock
+from src.shared.infra import SESSION_MAKER
+
+logger = logging.getLogger(__name__)
+
+
+class Control(StrEnum):
+    STOP = auto()
 
 
 class JobWorkerPool:
-    def __init__(
-        self,
-        *,
-        worker_count: int,
-        queue_size: int,
-    ) -> None:
-        self._started = False
-        self._queue: asyncio.Queue[DomainJob] = asyncio.Queue(maxsize=queue_size)
-        self._workers: list[asyncio.Task[None]] = []
-
-        self._repo: IJobRepo | None = None
-        self._session_manager: async_sessionmaker[AsyncSession] | None = None
+    def __init__(self, *, worker_count: int, queue_size: int) -> None:
         self._worker_count = worker_count
+        self._queue: multiprocessing.Queue[JobID | object] = multiprocessing.Queue(
+            maxsize=queue_size
+        )
+        self._processes: list[multiprocessing.Process] = []
+        self._started = False
 
     def start(self) -> None:
         if self._started:
             return
 
+        for i in range(self._worker_count):
+            process = multiprocessing.Process(
+                target=self._run_worker,
+                name=f"worker-{i}",
+                daemon=False,
+            )
+
+            process.start()
+            self._processes.append(process)
+
         self._started = True
 
-        for _ in range(self._worker_count):
-            task = asyncio.create_task(self._worker())
-            self._workers.append(task)
+    def submit(self, job_id: JobID) -> None:
+        if not self._started:
+            logger.critical("Pool has not been started.")
+            raise RuntimeError("Pool has not been started.")
 
-    async def stop(self, *, drain: bool = True) -> None:
+        self._queue.put(job_id)
+
+    def _run_worker(self) -> None:
+        asyncio.run(self._worker_loop())
+
+    async def _worker_loop(self) -> None:
+        repo = JobRepo()
+        while True:
+            job_id = self._queue.get()
+
+            if job_id == Control.STOP:
+                return
+
+            try:
+                await self._execute(
+                    job_id=job_id,  # type: ignore
+                    session_maker=SESSION_MAKER,
+                    repo=repo,
+                )
+
+            except Exception:
+                import traceback
+
+                traceback.print_exc()
+
+    def stop(self) -> None:
         if not self._started:
             return
 
-        if drain:
-            await self._queue.join()
+        for _ in self._processes:
+            self._queue.put(Control.STOP)
 
-        for task in self._workers:
-            task.cancel()
+        for p in self._processes:
+            p.join()
 
-        await asyncio.gather(*self._workers, return_exceptions=True)
-        self._workers.clear()
+        self._processes.clear()
         self._started = False
 
-    async def submit(
+    async def _execute(
         self,
-        job: DomainJob,
-        session_manager: async_sessionmaker[AsyncSession],
-        repo: IJobRepo,
+        job_id: JobID,
+        session_maker: async_sessionmaker[AsyncSession],
+        repo: JobRepo,
     ) -> None:
-        self._session_manager = session_manager
-        self._repo = repo
-        await self._queue.put(job)
-
-    async def _worker(self) -> None:
-        while True:
-            job = await self._queue.get()
-
-            try:
-                await self._execute(job)
-
-            finally:
-                self._queue.task_done()
-
-    async def _execute(self, job: DomainJob) -> None:
-        if (self._repo is None) or (self._session_manager is None):
-            raise RuntimeError(
-                "Repo instance or session_manager instance didnt pass to JobWorkerPool."
+        async with session_maker.begin() as session:
+            job = await repo.get_by_id(
+                session=session, id=job_id, lock=DBLock(is_active=False)
             )
+            if not job:
+                logger.critical("Database error.")
+                return
+
         try:
-            unique_words = await asyncio.to_thread(job.count_unique_words)
+            unique_words = job.count_unique_words()
+            word_count = job.count_words()
 
-            word_count = await asyncio.to_thread(job.count_words)
-
-            async with self._session_manager.begin() as session:
-                await self._repo.mark_job_as_completed(
+            async with session_maker.begin() as session:
+                await repo.mark_job_as_completed(
                     session=session,
                     id=job.id,
                     result={
@@ -86,8 +115,8 @@ class JobWorkerPool:
                 )
 
         except Exception as ex:
-            async with self._session_manager.begin() as session:
-                await self._repo.mark_job_as_failed(
+            async with session_maker.begin() as session:
+                await repo.mark_job_as_failed(
                     session=session,
                     id=job.id,
                     processing_error=str(ex),

@@ -37,9 +37,7 @@ class JobScheduler:
             )
 
         for job in jobs:
-            await self._pool.submit(
-                job=job, session_manager=self._session_manager, repo=self._repo
-            )
+            self._pool.submit(job_id=job.id)
 
     async def reset_stale_processing_jobs(self) -> None:
         async with self._session_manager.begin() as session:

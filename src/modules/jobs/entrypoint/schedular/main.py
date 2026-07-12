@@ -75,7 +75,7 @@ async def lifespan(aio_clock: AioClock) -> AsyncGenerator[AioClock]:
 
     yield aio_clock
 
-    await pool_instance.stop()
+    pool_instance.stop()
 
 
 app = AioClock(lifespan=lifespan)
